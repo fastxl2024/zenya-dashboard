@@ -4,9 +4,14 @@ const cors = require('cors');
 const { exec } = require('child_process');
 const os = require('os');
 const path = require('path');
+const fs = require('fs');
+const axios = require('axios');
 
 const app = express();
 const PORT = 3000;
+
+const LOCAL_VERSION_PATH = './local_version.json';
+const REMOTE_VERSION_URL = 'https://raw.githubusercontent.com/fastxl2024/zenya-dashboard/main/version.json';
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -108,6 +113,40 @@ app.get('/api/zfs/snapshots', (req, res) => {
       return { name, used, creation };
     });
     res.json(snapshots);
+  });
+});
+
+// Versie controle
+app.get('/api/check-update', async (req, res) => {
+  try {
+    const local = JSON.parse(fs.readFileSync(LOCAL_VERSION_PATH));
+    const { data: remote } = await axios.get(REMOTE_VERSION_URL);
+
+    const isUpdate = remote.version !== local.version;
+
+    res.json({
+      updateAvailable: isUpdate,
+      current: local.version,
+      latest: remote.version,
+      changelog: remote.changelog,
+      download_url: remote.download_url,
+      release_date: remote.release_date
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Update check failed', details: err.message });
+  }
+});
+
+// Update starten
+app.get('/api/start-update', (req, res) => {
+  exec('node /opt/zenya/scripts/updateZenya.js', (error, stdout, stderr) => {
+    if (error) {
+      console.error('❌ Update-fout:', error.message);
+      res.status(500).send('Update mislukt: ' + error.message);
+    } else {
+      console.log('✅ Update uitgevoerd:\n', stdout);
+      res.send('Update uitgevoerd. Herlaad Zenya om wijzigingen te zien.');
+    }
   });
 });
 

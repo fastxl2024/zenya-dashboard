@@ -185,6 +185,18 @@
     <button data-id="zfs" onclick="showSection('zfs')"><i class="bi bi-hdd"></i> ZFS</button>
     <button data-id="snapshots" onclick="showSection('snapshots')"><i class="bi bi-camera"></i> Snapshots</button>
     <button data-id="services" onclick="showSection('services')"><i class="bi bi-toggle-on"></i> Services</button>
+    <button onclick="checkForUpdate()">🔍 Controleer op update</button>
+
+    <dialog id="update-dialog">
+      <form method="dialog">
+        <h3>🆕 Zenya update beschikbaar (<span id="popup-version"></span>)</h3>
+        <pre id="popup-changelog" style="max-height:300px; overflow:auto; background:#f9f9f9; padding:10px;"></pre>
+        <menu>
+          <button onclick="startUpdate()">✅ Installeer update</button>
+          <button>Annuleer</button>
+        </menu>
+      </form>
+    </dialog>
   </div>
 
   <div class="content">
@@ -316,6 +328,38 @@ async function toggleService(name) {
     });
     btn.textContent = 'Stop';
   }
+}
+
+function checkForUpdate() {
+  fetch('/api/check-update')
+    .then(res => res.json())
+    .then(data => {
+      if (data.updateAvailable) {
+        document.getElementById('popup-version').textContent = data.latest;
+        
+        // Haal changelog-tekst op
+        fetch(data.changelog.replace('/tag/', '/download/') + '/changelog.md')
+          .then(res => res.text())
+          .then(text => {
+            document.getElementById('popup-changelog').textContent = text;
+            document.getElementById('update-dialog').showModal();
+          })
+          .catch(err => alert('Kon changelog niet laden: ' + err));
+      } else {
+        alert('✅ Je hebt al de nieuwste versie: ' + data.current);
+      }
+    })
+    .catch(err => alert('❌ Versiecontrole mislukt: ' + err));
+}
+
+function startUpdate() {
+  fetch('/api/start-update')
+    .then(res => res.text())
+    .then(msg => {
+      alert('🔄 ' + msg);
+      document.getElementById('update-dialog').close();
+    })
+    .catch(err => alert('❌ Update mislukt: ' + err));
 }
 </script>
 </body>

@@ -338,7 +338,7 @@ function checkForUpdate() {
         document.getElementById('popup-version').textContent = data.latest;
         
         // Haal changelog-tekst op
-        fetch(data.changelog.replace('/tag/', '/download/') + '/changelog.md')
+        fetch(data.changelog)
           .then(res => res.text())
           .then(text => {
             document.getElementById('popup-changelog').textContent = text;
@@ -350,7 +350,7 @@ function checkForUpdate() {
       }
     })
     .catch(err => alert('❌ Versiecontrole mislukt: ' + err));
-}
+} 
 
 function startUpdate() {
   fetch('/api/start-update')
